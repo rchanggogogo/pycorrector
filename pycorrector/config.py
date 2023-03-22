@@ -36,6 +36,10 @@ stopwords_path = os.path.join(pwd_path, 'data/stopwords.txt')
 ngram_words_path = os.path.join(pwd_path, 'data/ngram_words.txt')
 # 英文拼写词频文件
 en_dict_path = os.path.join(pwd_path, 'data/en/en.json.gz')
+# 用户自定义混淆词
+user_custom_confusion_path = os.path.join(pwd_path, '../examples/my_custom_confusion.txt')
+# 用户自定义属性词典
+user_custom_proper_path = os.path.join(pwd_path, '../examples/my_custom_proper.txt')
 
 # -----深度模型文件路径 -----
 # bert模型文件夹路径
