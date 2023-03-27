@@ -3,13 +3,15 @@
 @author:XuMing(xuming624@qq.com)
 @description: 汉字处理的工具:判断unicode是否是汉字，数字，英文，或者其他字符。以及全角符号转半角符号。
 """
-
+import operator
 import re
-
+import Levenshtein
 import pypinyin
 from pypinyin import pinyin
 
 from pycorrector.utils.langconv import Converter
+
+unk_tokens = [' ', '“', '”', '‘', '’', '琊', '\n', '…', '擤', '\t', '玕', '']
 
 
 def is_chinese(uchar):
@@ -137,6 +139,51 @@ def get_homophones_by_pinyin(input_pinyin):
     return result
 
 
+def get_errors(corrected_text, origin_text):
+    sub_details = []
+    for i, ori_char in enumerate(origin_text):
+        if i >= len(corrected_text):
+            continue
+        if ori_char in unk_tokens:
+            # deal with unk word
+            corrected_text = corrected_text[:i] + ori_char + corrected_text[i:]
+            continue
+        if ori_char != corrected_text[i]:
+            if not is_chinese(ori_char):
+                # pass not chinese char
+                corrected_text = corrected_text[:i] + ori_char + corrected_text[i + 1:]
+                continue
+            if not is_chinese(corrected_text[i]):
+                corrected_text = corrected_text[:i] + corrected_text[i + 1:]
+                continue
+            sub_details.append((ori_char, corrected_text[i], i, i + 1))
+    if len(corrected_text) > len(origin_text):
+        corrected_char = corrected_text[len(origin_text):]
+        sub_details.append(('', corrected_char, len(origin_text), len(corrected_text)))
+    sub_details = sorted(sub_details, key=operator.itemgetter(2))
+    return corrected_text, sub_details
+
+
+def get_editops(origin_text, corrected_text):
+    """
+    获取 origin_text 变为 corrected_text 所需要的操作
+    operation is one of  'replace', 'insert', or 'delete';
+    Args:
+        corrected_text:
+        origin_text:
+
+    Returns: corrected_text, [(operation, begin, end), ...]
+    Examples:
+        # >>> get_editops('你好', '你好哇')
+        ('你好哇', [('insert', 2, 3)])
+
+
+    """
+
+    sub_details = Levenshtein.editops(origin_text, corrected_text)
+    return corrected_text, sub_details
+
+
 if __name__ == "__main__":
     a = 'nihao'
     print(a, is_alphabet_string(a))
@@ -166,3 +213,4 @@ if __name__ == "__main__":
     print(is_alphabet_number_string('teacher'))
     print(is_alphabet_number_string('oppo12'))
     print(is_alphabet_number_string('oppo12 '))
+    print(get_editops('你好哇', '你好'))
