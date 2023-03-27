@@ -317,3 +317,41 @@ class Corrector(Detector):
             text_new += sentence
         details = sorted(details, key=operator.itemgetter(2))
         return text_new, details
+
+    def custom_corrector(self, text, include_symbol=True, num_fragment=1, threshold=57, **kwargs):
+        """
+        自定义纠错
+        :param text: str, query 文本
+        :param include_symbol: bool, 是否包含标点符号
+        :param num_fragment: 纠错候选集分段数, 1 / (num_fragment + 1)
+        :param threshold: 语言模型纠错ppl阈值
+        :param kwargs: ...
+        :return: text (str)改正后的句子, list(wrong, right, begin_idx, end_idx)
+        """
+        text_new = ''
+        details = []
+        self.check_corrector_initialized()
+        # 文本切分为句子
+        sentences = split_2_short_text(text, include_symbol=include_symbol)
+        for sentence, idx in sentences:
+            maybe_errors, proper_details = self.detect_sentence(sentence, idx, **kwargs)
+            for cur_item, begin_idx, end_idx, err_type in maybe_errors:
+                # 纠错，逐个处理
+                before_sent = sentence[:(begin_idx - idx)]
+                after_sent = sentence[(end_idx - idx):]
+                # 困惑集中指定的词，直接取结果
+                if err_type == ErrorType.confusion:
+                    corrected_item = self.custom_confusion[cur_item]
+                elif err_type == ErrorType.proper:
+                    # 专名错误 proper_details format: (error_word, corrected_word, begin_idx, end_idx)
+                    corrected_item = [i[1] for i in proper_details if cur_item == i[0] and begin_idx == i[2]][0]
+                else:
+                    corrected_item = ''
+                # output
+                if corrected_item != cur_item and corrected_item != '':
+                    sentence = before_sent + corrected_item + after_sent
+                    detail_word = (cur_item, corrected_item, begin_idx, end_idx)
+                    details.append(detail_word)
+            text_new += sentence
+        details = sorted(details, key=operator.itemgetter(2))
+        return text_new, details

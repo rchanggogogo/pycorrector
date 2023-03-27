@@ -109,6 +109,7 @@ class Detector(object):
         self.custom_word_freq.update(self.place_names)
         self.custom_word_freq.update(self.stopwords)
         self.word_freq.update(self.custom_word_freq)
+        # 自定义 tokenizer
         self.tokenizer = Tokenizer(dict_path=self.word_freq_path,
                                    custom_word_freq_dict=self.custom_word_freq,
                                    custom_confusion_dict=self.custom_confusion)
@@ -415,7 +416,7 @@ class Detector(object):
         if self.is_char_error_detect:
             try:
                 ngram_avg_scores = []
-                for n in [2, 3]:
+                for n in [1, 2, 3]:
                     scores = []
                     for i in range(len(sentence) - n + 1):
                         word = sentence[i:i + n]
@@ -434,7 +435,7 @@ class Detector(object):
                     # 取拼接后的n-gram平均得分
                     sent_scores = list(np.average(np.array(ngram_avg_scores), axis=0))
                     # 取疑似错字信息
-                    for i in self._get_maybe_error_index(sent_scores):
+                    for i in self._get_maybe_error_index(sent_scores, threshold=0.8):
                         token = sentence[i]
                         # pass filter word
                         if self.is_filter_token(token):
